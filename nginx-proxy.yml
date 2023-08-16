@@ -1,0 +1,40 @@
+version: '3'
+services:
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    depends_on:
+      - nginx
+    volumes:
+      - ./etc/letsencrypt:/etc/letsencrypt
+      - ./var/lib/letsencrypt:/var/lib/letsencrypt
+    # change email & domain
+    command: certonly --email email@company.name --agree-tos --webroot --webroot-path=/var/lib/letsencrypt/ -d third.domain.name --non-interactive
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 60d & wait $${!}; done'"
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /path/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+      - /path/cert:/etc/nginx/cert:ro
+      - /path/htpasswd:/etc/nginx/htpasswd:ro
+      - ./etc/letsencrypt:/etc/letsencrypt
+      - ./var/lib/letsencrypt:/var/lib/letsencrypt
+    networks:
+      default:
+      bridge-master:
+        ipv4_address: 172.1.0.2
+      bridge-beta:
+        ipv4_address: 172.2.0.2
+
+networks:
+  default:
+  bridge-master:
+    external: true
+  bridge-beta:
+    external: true
