@@ -1,0 +1,50 @@
+version: '3'
+services:
+  ui:
+    image: nginx:1.25.2-alpine
+    container_name: ui-master
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      - backend
+    volumes:
+      - ui-build:/usr/share/nginx/html
+      - /config/nginx/master:/etc/nginx/nginx.conf:ro
+    networks:
+      bridge-master:
+        ipv4_address: 172.1.0.3
+
+  db:
+    image: postgres:15.3
+    container_name: db-master
+    restart: unless-stopped
+
+
+    volumes:
+      - db-data:/var/lib/postgresql/data/
+    networks:
+      bridge-master:
+        ipv4_address: 172.1.0.5
+
+  backend:
+    image: backend-master:latest
+    container_name: backend-master
+    restart: unless-stopped
+    depends_on:
+      - db
+    networks:
+      bridge-master:
+        ipv4_address: 172.1.0.4
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=db_user
+      - DB_PASSWORD=db_passwd
+
+volumes:
+  db-data:
+  ui-build:
+
+networks:
+  bridge-master:
+    external: true
